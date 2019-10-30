@@ -114,8 +114,10 @@ for(i in 14:50){
   print(i)
   pov[i] = monte_carlo_integration(i, 0.3, 20000)}
 write.table(pov, "C://Users//henri//Documents//GitHub//MA8001_6//pov_d.csv")
-pov = read.table("C://Users//henri//Documents//GitHub//MA8001_6//pov_d.csv")
+pov = as.vector(read.table("C://Users//henri//Documents//GitHub//MA8001_6//pov_d.csv"))
 voi = pov + 100000
+voi = voi[,1]
+plot(voi, xlab = "k", ylab = "VoI")
 
 
 
@@ -128,12 +130,26 @@ monte_carlo_integration_e <- function(k, tau, n){
   for (i in 1:n){
     
     y = rnorm(50, 1/2, 100*tau)
-    x_low = rbinom(1, 1, marg_prob[min(k)])
-    if (x_low == 1){x_high = 1}
-    else{x_high = rbinom(1,1,marg_prob[max(k)])}
-    y[min(k)] = rnorm(1, x_low, tau)
-    y[max(k)] = rnorm(1, x_high, tau)
-    
+    x = rep(NA, 50)
+    x[k[1]] = rbinom(1, 1, marg_prob[k[1]])
+    if(min(k)!=max(k)){
+    for (i in (k[1]+1):k[2]){
+      if(x[i-1] == 1){x[i] =1}
+      else{
+        if(runif(1) < 0.05){
+          x[i] = 1
+        }
+        else{
+          x[i] = 0
+        }
+      }
+    }
+    }
+    if(min(k) == max(k)){y[k[1]] = rnorm(1,x[k[1]], tau/sqrt(2))}
+    else{
+    y[min(k)] = rnorm(1, x[min(k)], tau)
+    y[max(k)] = rnorm(1, x[max(k)], tau)}
+
     probabilities = fb_algo(y, tau, k)
     
     clean = -100000
@@ -153,15 +169,38 @@ monte_carlo_integration_e <- function(k, tau, n){
 #     iter = iter + 1
 #   }}
 # pov_e2 = apply(positions, 1, monte_carlo_integration_e, tau = 0.3, n = 100)
+
 pov_e = matrix(NA, ncol = 50, nrow = 50)
-for (i in 1:49){
-  for (j in (i+1):50){
-    if (j==i){next}
-    k = c(i,j)
-    pov_e[i-10,j-10] = monte_carlo_integration_e(k, 0.3, 1000)
-  }
+# Diagonal elements
+for (i in 1:50){
+  k = c(i,i)
+  pov_e[i,i] = monte_carlo_integration_e(k, 0.3, 100000)
   print(i)
 }
+# Off diagonal
+for (i in 21:50){
+  for (j in i:50){
+    if (j==i){next}
+    k = c(i,j)
+    pov_e[i,j] = monte_carlo_integration_e(k, 0.3, 10000)
+    print(j)
+    pov_e[j,i] = pov_e[i,j]
+  }
+}
+
+voi_e = pov_e+100000
+#for (i in 1:50){voi_e[i,i] = voi[i]}
+image.plot(x = 1:50, y = 1:50, z = voi_e, xlab = "i", ylab = "j")
+write.table(pov_e, "C://Users//henri//Documents//GitHub//MA8001_6//pov_e.csv")
+pov_e = as.matrix(read.table("C://Users//henri//Documents//GitHub//MA8001_6//pov_e.csv"))
+
+max(voi_e)
+which(voi_e == max(voi_e), arr.ind = TRUE)
+
+max(voi_e[upper.tri(voi_e, diag = F)])
+which(voi_e[upper.tri(voi_e, diag = F)] == max(voi_e[upper.tri(voi_e, diag = F)]), arr.ind = TRUE)
+
+voi_e[20,30]
 
 # 1f)
 
